@@ -1,0 +1,35 @@
+[tools]
+java = "26"
+maven = "3"
+
+# ─── Build ───────────────────────────────────────────────────────────────────
+
+[tasks.build]
+description = "Compile every brick"
+run = """
+for b in bricks/*/; do
+  echo "==> $b"
+  (cd "$b" && mvn -q -DskipTests compile)
+done
+"""
+
+# ─── Bricks ──────────────────────────────────────────────────────────────────
+# One task per brick. Each brick is a standalone Maven project — no parent pom.
+
+[tasks."data-modeling"]
+description = "The data-modeling brick — sealed outcomes + records + exhaustive switch as ONE primitive"
+dir = "bricks/data-modeling"
+run = """
+mvn -q -DskipTests compile
+java -cp target/classes dev.lukasgrigis.foundations.datamodeling.DataModelingDemo
+"""
+
+[tasks.demo]
+description = "Run every brick's demo in turn"
+run = """
+for b in data-modeling; do
+  echo "========== $b =========="
+  mise run "$b"
+  echo
+done
+"""

@@ -1,0 +1,18 @@
+### Maven ###
+target/
+
+### IDE ###
+.idea/
+.classpath
+.project
+.settings/
+*.iml
+
+### OS ###
+.DS_Store
+
+### Runtime logs ###
+.logs/
+
+### AI assistant runtime artifacts ###
+.claude/
