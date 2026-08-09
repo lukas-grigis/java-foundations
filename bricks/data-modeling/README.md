@@ -1,15 +1,18 @@
 # data-modeling
 
 **Thesis in three sentences.** Records, sealed interfaces, and pattern matching are usually
-taught as three separate features, but they are three thirds of ONE modeling primitive: the
-sealed interface declares the closed set of alternatives, each record carries one alternative's
-data, and the exhaustive `switch` is the consumer the compiler checks against that set. Model
-token validation this way and "you forgot to handle the new outcome" stops being a code-review
-catch and becomes a compile error — which matters here, because at a security gate the
-unhandled outcome is a **fail-open** bug: the ladder's fall-through quietly becomes the policy
-for every outcome you add later. Drop any one of the three and the other two lose that
-guarantee — which is why using them piecemeal feels underwhelming and using them together
-changes how you design.
+taught as three separate features, but they are ONE modeling primitive: the sealed interface
+declares the closed set of alternatives, each record carries one alternative's data, and the
+exhaustive `switch` is the consumer the compiler checks against that set. Model token validation
+this way and "you forgot to handle the new outcome" stops being a code-review catch and becomes a
+compile error — which matters here, because at a security gate the unhandled outcome is a
+**fail-open** bug: the ladder's fall-through quietly becomes the policy for every outcome you add
+later. The check itself comes from the sealed set plus the switch, and the records are what make
+each alternative arrive carrying its own data instead of as a marker class you have to cast and
+interrogate.
+
+Companion article:
+[Records, sealed interfaces, and exhaustive switch: one modeling primitive](https://lukasgrigis.dev/blog/java-records-sealed-pattern-matching/).
 
 ## Run it
 

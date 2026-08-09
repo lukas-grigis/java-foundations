@@ -23,7 +23,7 @@ Folders are slugs, nothing is numbered.
 
 | Brick | Thesis | Category | Article |
 |-------|--------|----------|---------|
-| [data-modeling](bricks/data-modeling/) | Records + sealed interfaces + exhaustive switch are ONE modeling primitive, not three features | Data modeling | — |
+| [data-modeling](bricks/data-modeling/) | Records + sealed interfaces + exhaustive switch are ONE modeling primitive, not three features | Data modeling | [Read](https://lukasgrigis.dev/blog/java-records-sealed-pattern-matching/) |
 
 Each brick's README carries the thesis, a file-by-file tour, and the experiment to run yourself.
 
