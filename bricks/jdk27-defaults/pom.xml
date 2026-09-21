@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>dev.lukasgrigis.foundations</groupId>
+    <artifactId>jdk27-defaults</artifactId>
+    <version>0.1.0</version>
+    <name>jdk27-defaults</name>
+
+    <description>
+        Java Foundations, the jdk27-defaults brick, two JVM defaults changed on 15 September 2026 with no code change:
+        compact object headers (JEP 534) and G1 everywhere (JEP 523). Pure JDK, no dependencies.
+    </description>
+
+    <properties>
+        <!--
+            26, not 27, and that is the experiment: the SAME class files run unchanged on a JDK 26
+            JVM and a JDK 27 JVM. Both JEPs changed a JVM default, not the bytecode and not the
+            class library, so one binary shows both behaviours. Compiling at 27 would still run on
+            27, but it is 26 that proves nothing in the artifact itself changed.
+        -->
+        <maven.compiler.release>26</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <!-- No dependencies: the whole point is what the JVM does on its own. -->
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <compilerArgs>
+                        <arg>-Xlint:all</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

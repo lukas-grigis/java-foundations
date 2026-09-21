@@ -1,7 +1,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Java-26-ED8B00?logo=openjdk&logoColor=white" alt="Java 26">
   <img src="https://img.shields.io/badge/Maven-standalone_bricks-C71A36?logo=apachemaven&logoColor=white" alt="Maven, standalone bricks">
-  <img src="https://img.shields.io/badge/bricks-1-2E8B57" alt="1 brick">
+  <img src="https://img.shields.io/badge/bricks-2-2E8B57" alt="2 bricks">
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License">
 </p>
 
@@ -24,6 +24,7 @@ Folders are slugs, nothing is numbered.
 | Brick | Thesis | Category | Article |
 |-------|--------|----------|---------|
 | [data-modeling](bricks/data-modeling/) | Records + sealed interfaces + exhaustive switch are ONE modeling primitive, not three features | Data modeling | [Read](https://lukasgrigis.dev/blog/java-records-sealed-pattern-matching/) |
+| [jdk27-defaults](bricks/jdk27-defaults/) | JDK 27 shrinks object headers and switches small containers to G1 — same code, two JVMs, two measured defaults | JVM / GC | — |
 
 Each brick's README carries the thesis, a file-by-file tour, and the experiment to run yourself.
 
@@ -31,6 +32,7 @@ Each brick's README carries the thesis, a file-by-file tour, and the experiment 
 
 ```
 mise run data-modeling   # build + run the data-modeling brick
+mise run jdk27-defaults  # build + run the jdk27-defaults brick, on JDK 26 and JDK 27
 mise run demo            # run every brick in turn
 mise run build           # compile every brick, run nothing
 ```
@@ -45,7 +47,8 @@ each brick's README names its main class. Tool versions are pinned in [mise.toml
 java-foundations/
 ├── mise.toml            # pinned toolchain + one task per brick
 └── bricks/
-    └── data-modeling/   # standalone Maven project — own pom, own README
+    ├── data-modeling/   # standalone Maven project — own pom, own README
+    └── jdk27-defaults/  # release 26, runs unchanged on JDK 26 and JDK 27
 ```
 
 No parent pom, no aggregator: a brick you can't copy out of the repo and run isn't standalone.

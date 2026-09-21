@@ -27,9 +27,90 @@ java -cp target/classes dev.lukasgrigis.foundations.datamodeling.DataModelingDem
 [tasks.demo]
 description = "Run every brick's demo in turn"
 run = """
-for b in data-modeling; do
+for b in data-modeling jdk27-defaults; do
   echo "========== $b =========="
   mise run "$b"
   echo
 done
+"""
+
+# jdk27-defaults compiles at --release 26 and runs unchanged on JDK 26.0.1 and JDK 27.0.0 — the
+# difference between the two JVMs is the claim, so every proof names both JDKs by absolute path
+# via `mise where`, independent of whatever [tools] java resolves to.
+
+[tasks."jdk27-defaults:build"]
+description = "Compile the jdk27-defaults brick — release 26, so one artifact loads on both JVMs"
+run = '''
+cd "$MISE_PROJECT_ROOT/bricks/jdk27-defaults"
+JAVA_HOME="$(mise where java@26.0.1)" mvn -q compile
+'''
+
+[tasks."jdk27-defaults:bytes-per-session"]
+description = "Proof 1 — heap bytes per stored session, JDK 26 vs 27, with the UseCompactObjectHeaders flag as the control (JEP 534)"
+run = '''
+set -e
+BRICK="$MISE_PROJECT_ROOT/bricks/jdk27-defaults"
+CLASSES="$BRICK/target/classes"
+MAIN=dev.lukasgrigis.foundations.jdk27defaults.proof.BytesPerSession
+cd "$BRICK"
+JAVA_HOME="$(mise where java@26.0.1)" mvn -q compile
+JAVA26="$(mise where java@26.0.1)/bin/java"
+JAVA27="$(mise where java@27.0.0)/bin/java"
+"$JAVA26" -Xms512m -Xmx512m -XX:+UseG1GC -cp "$CLASSES" "$MAIN"
+"$JAVA26" -Xms512m -Xmx512m -XX:+UseG1GC -XX:+UseCompactObjectHeaders -cp "$CLASSES" "$MAIN"
+"$JAVA27" -Xms512m -Xmx512m -XX:+UseG1GC -cp "$CLASSES" "$MAIN"
+"$JAVA27" -Xms512m -Xmx512m -XX:+UseG1GC -XX:-UseCompactObjectHeaders -cp "$CLASSES" "$MAIN"
+'''
+
+[tasks."jdk27-defaults:which-collector"]
+description = "Proof 2 — collector the JVM selects under a single-CPU constraint, JDK 26 vs 27, unconstrained as the control (JEP 523)"
+run = '''
+set -e
+BRICK="$MISE_PROJECT_ROOT/bricks/jdk27-defaults"
+CLASSES="$BRICK/target/classes"
+MAIN=dev.lukasgrigis.foundations.jdk27defaults.proof.WhichCollector
+cd "$BRICK"
+JAVA_HOME="$(mise where java@26.0.1)" mvn -q compile
+JAVA26="$(mise where java@26.0.1)/bin/java"
+JAVA27="$(mise where java@27.0.0)/bin/java"
+"$JAVA26" -XX:ActiveProcessorCount=1 -cp "$CLASSES" "$MAIN"
+"$JAVA27" -XX:ActiveProcessorCount=1 -cp "$CLASSES" "$MAIN"
+"$JAVA26" -cp "$CLASSES" "$MAIN"
+"$JAVA27" -cp "$CLASSES" "$MAIN"
+'''
+
+[tasks."jdk27-defaults:idle-footprint"]
+description = "Proof 3 — resident memory of an idle JVM, Serial vs G1, JDK 27 only"
+run = '''
+set -e
+BRICK="$MISE_PROJECT_ROOT/bricks/jdk27-defaults"
+CLASSES="$BRICK/target/classes"
+MAIN=dev.lukasgrigis.foundations.jdk27defaults.proof.IdleFootprint
+cd "$BRICK"
+JAVA_HOME="$(mise where java@26.0.1)" mvn -q compile
+JAVA27="$(mise where java@27.0.0)/bin/java"
+"$JAVA27" -Xms32m -Xmx32m -XX:+UseSerialGC -cp "$CLASSES" "$MAIN"
+"$JAVA27" -Xms32m -Xmx32m -XX:+UseG1GC -cp "$CLASSES" "$MAIN"
+'''
+
+[tasks."jdk27-defaults"]
+description = "The jdk27-defaults brick — G1 everywhere and compact object headers, two defaults that changed with no code change (JEP 523, JEP 534)"
+run = """
+set -e
+JAVA26="$(mise where java@26.0.1)/bin/java"
+JAVA27="$(mise where java@27.0.0)/bin/java"
+for j in "$JAVA26" "$JAVA27"; do
+  [ -x "$j" ] || { echo "missing JDK: mise install java@26.0.1 java@27.0.0"; exit 2; }
+done
+
+echo "================= BytesPerSession (JEP 534) ================="
+mise run jdk27-defaults:bytes-per-session
+echo
+
+echo "================= WhichCollector (JEP 523) ================="
+mise run jdk27-defaults:which-collector
+echo
+
+echo "================= IdleFootprint (Serial vs G1 on 27) ================="
+mise run jdk27-defaults:idle-footprint
 """
