@@ -109,7 +109,7 @@ echo "================= FirstWins ================="
 [tasks.demo]
 description = "Run every brick's demo in turn"
 run = """
-for b in data-modeling jdk27-defaults structured-concurrency; do
+for b in data-modeling jdk27-defaults structured-concurrency virtual-threads-pinning; do
   echo "========== $b =========="
   mise run "$b"
   echo
@@ -195,4 +195,44 @@ echo
 
 echo "================= IdleFootprint (Serial vs G1 on 27) ================="
 mise run jdk27-defaults:idle-footprint
+"""
+
+# virtual-threads-pinning compiles at --release 21 and runs unchanged on JDK 21.0.2 and JDK 26.0.1 —
+# JEP 491 shipped in JDK 24, between the two. run-proof.sh names both JDKs by absolute path and fixes
+# the carrier count at 2, so the numbers do not depend on this machine's core count.
+
+[tasks."virtual-threads-pinning:build"]
+description = "Compile the virtual-threads-pinning brick — release 21, so one artifact loads on both JVMs"
+run = '''
+cd "$MISE_PROJECT_ROOT/bricks/virtual-threads-pinning"
+mvn -q compile
+'''
+
+[tasks."virtual-threads-pinning:blocking-inside-synchronized"]
+description = "Proof 1 — 64 virtual threads, each blocking inside its OWN synchronized lock: maxInside on JDK 21 vs JDK 26"
+run = '"$MISE_PROJECT_ROOT/bricks/virtual-threads-pinning/run-proof.sh" BlockingInsideSynchronized'
+
+[tasks."virtual-threads-pinning:blocking-inside-reentrant-lock"]
+description = "Proof 2 — the control: the same shape with a ReentrantLock, same numbers on both JDKs"
+run = '"$MISE_PROJECT_ROOT/bricks/virtual-threads-pinning/run-proof.sh" BlockingInsideReentrantLock'
+
+[tasks."virtual-threads-pinning:shared-lock"]
+description = "Proof 3 — one SHARED monitor: maxInside stays 1 on both JDKs, because this is contention, not pinning"
+run = '"$MISE_PROJECT_ROOT/bricks/virtual-threads-pinning/run-proof.sh" SharedLock'
+
+[tasks."virtual-threads-pinning:still-pins"]
+description = "Proof 4 — does waiting for another thread's class init still pin, as the JEP 491 text says?"
+run = '"$MISE_PROJECT_ROOT/bricks/virtual-threads-pinning/run-proof.sh" StillPins'
+
+[tasks."virtual-threads-pinning"]
+description = "The virtual-threads-pinning brick — JEP 491 changed the cost of synchronized, not its meaning"
+run = """
+set -e
+mise run virtual-threads-pinning:build
+export VTP_SKIP_BUILD=1
+for proof in blocking-inside-synchronized blocking-inside-reentrant-lock shared-lock still-pins; do
+  echo "========== $proof =========="
+  mise run "virtual-threads-pinning:$proof"
+  echo
+done
 """

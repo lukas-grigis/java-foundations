@@ -16,3 +16,6 @@ target/
 
 ### AI assistant runtime artifacts ###
 .claude/
+
+### Demo run artifacts (rebuilt every run, never committed) ###
+*.jfr
