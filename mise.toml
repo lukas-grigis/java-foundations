@@ -35,6 +35,52 @@ mvn -q -DskipTests compile
 java -cp target/classes dev.lukasgrigis.foundations.datamodeling.DataModelingDemo
 """
 
+[tasks."memory-model:build"]
+description = "Compile the memory-model brick"
+run = '''
+cd "$MISE_PROJECT_ROOT/bricks/memory-model"
+mvn -q compile
+'''
+
+[tasks."memory-model:lost-updates"]
+description = "Proof 1 — counter++ from two threads: plain / volatile / synchronized"
+run = '''
+mise run memory-model:build
+java -cp "$MISE_PROJECT_ROOT/bricks/memory-model/target/classes" dev.lukasgrigis.foundations.memorymodel.proof.LostUpdates
+'''
+
+[tasks."memory-model:stale-read"]
+description = "Proof 2 — a worker spins on a stop flag: plain boolean vs volatile boolean"
+run = '''
+mise run memory-model:build
+java -cp "$MISE_PROJECT_ROOT/bricks/memory-model/target/classes" dev.lukasgrigis.foundations.memorymodel.proof.StaleRead
+'''
+
+[tasks."memory-model:unsafe-publication"]
+description = "Proof 3 — an object handed over through a data race: final field vs plain field"
+run = '''
+mise run memory-model:build
+java -cp "$MISE_PROJECT_ROOT/bricks/memory-model/target/classes" dev.lukasgrigis.foundations.memorymodel.proof.UnsafePublication
+'''
+
+[tasks."memory-model"]
+description = "The memory-model brick — synchronized, volatile and final: three different promises, three proofs"
+run = '''
+set -e
+mise run memory-model:build
+CLASSES="$MISE_PROJECT_ROOT/bricks/memory-model/target/classes"
+PKG=dev.lukasgrigis.foundations.memorymodel.proof
+
+echo "================= LostUpdates ================="
+java -cp "$CLASSES" "$PKG.LostUpdates"
+echo
+echo "================= StaleRead ================="
+java -cp "$CLASSES" "$PKG.StaleRead"
+echo
+echo "================= UnsafePublication ================="
+java -cp "$CLASSES" "$PKG.UnsafePublication"
+'''
+
 # structured-concurrency is a PREVIEW BRICK: StructuredTaskScope is JEP 533 (seventh preview,
 # JDK 27), finalisation is only a candidate (JEP 543, targeted JDK 28). Every task below compiles
 # AND runs with JDK 27.0.0 and --enable-preview, named by absolute path, independent of the
@@ -109,7 +155,7 @@ echo "================= FirstWins ================="
 [tasks.demo]
 description = "Run every brick's demo in turn"
 run = """
-for b in data-modeling jdk27-defaults structured-concurrency virtual-threads-pinning; do
+for b in data-modeling memory-model jdk27-defaults structured-concurrency virtual-threads-pinning; do
   echo "========== $b =========="
   mise run "$b"
   echo

@@ -1,7 +1,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Java-27-ED8B00?logo=openjdk&logoColor=white" alt="Java 27">
   <img src="https://img.shields.io/badge/Maven-standalone_bricks-C71A36?logo=apachemaven&logoColor=white" alt="Maven, standalone bricks">
-  <img src="https://img.shields.io/badge/bricks-4-2E8B57" alt="4 bricks">
+  <img src="https://img.shields.io/badge/bricks-5-2E8B57" alt="5 bricks">
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License">
 </p>
 
@@ -27,6 +27,7 @@ Folders are slugs, nothing is numbered.
 | [jdk27-defaults](bricks/jdk27-defaults/) | JDK 27 shrinks object headers and switches small containers to G1 — same code, two JVMs, two measured defaults | JVM / GC | — |
 | [structured-concurrency](bricks/structured-concurrency/) *(preview, JDK 27)* | `StructuredTaskScope` turns sibling cancellation, thread cleanup and deadlines into a guarantee instead of a discipline every caller maintains by hand | Concurrency | — |
 | [virtual-threads-pinning](bricks/virtual-threads-pinning/) | JEP 491 changed the cost of `synchronized`, not its meaning — one binary, two JVMs, 2 threads inside a critical section vs. 64 | Concurrency | — |
+| [memory-model](bricks/memory-model/) | `synchronized`, `volatile` and `final` are three different promises, not three flavors of thread safety: one against lost updates, one against stale reads, one against half-built objects | Concurrency | — |
 
 Each brick's README carries the thesis, a file-by-file tour, and the experiment to run yourself.
 
@@ -34,6 +35,7 @@ Each brick's README carries the thesis, a file-by-file tour, and the experiment 
 
 ```
 mise run data-modeling           # build + run the data-modeling brick
+mise run memory-model            # build + run the memory-model brick
 mise run jdk27-defaults          # build + run the jdk27-defaults brick, on JDK 26 and JDK 27
 mise run structured-concurrency  # build + run the structured-concurrency brick (JDK 27, preview)
 mise run virtual-threads-pinning # build + run the virtual-threads-pinning brick, on JDK 21 and JDK 26
@@ -56,6 +58,7 @@ java-foundations/
 └── bricks/
     ├── data-modeling/           # standalone Maven project — own pom, own README
     ├── jdk27-defaults/          # release 26, runs unchanged on JDK 26 and JDK 27
+    ├── memory-model/            # standalone Maven project — own pom, own README
     ├── structured-concurrency/  # preview brick — JDK 27 with --enable-preview until JEP 543 lands
     └── virtual-threads-pinning/ # release 21, runs unchanged on JDK 21 and JDK 26
 ```
