@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/Java-26-ED8B00?logo=openjdk&logoColor=white" alt="Java 26">
+  <img src="https://img.shields.io/badge/Java-27-ED8B00?logo=openjdk&logoColor=white" alt="Java 27">
   <img src="https://img.shields.io/badge/Maven-standalone_bricks-C71A36?logo=apachemaven&logoColor=white" alt="Maven, standalone bricks">
   <img src="https://img.shields.io/badge/bricks-2-2E8B57" alt="2 bricks">
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License">
@@ -39,7 +39,7 @@ mise run build           # compile every brick, run nothing
 
 Or without mise: `cd bricks/<brick> && mvn -q compile && java -cp target/classes <MainClass>` —
 each brick's README names its main class. Tool versions are pinned in [mise.toml](mise.toml)
-(Java 26, Maven 3).
+(Java 27, Maven 3).
 
 ## Project structure
 
