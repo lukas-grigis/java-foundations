@@ -1,3 +1,8 @@
+# Tasks never use `mise x`: it runs the command in a subprocess whose working directory is not
+# reliably the one you cd'd to. Every task below cds through $MISE_PROJECT_ROOT and keeps paths
+# absolute, so it works from a terminal, an IDE, or a subdirectory. A brick that needs a JDK
+# other than [tools] below names it by absolute path via `mise where java@<version>`.
+
 [tools]
 java = "27"
 maven = "3"
@@ -9,7 +14,11 @@ description = "Compile every brick"
 run = """
 for b in bricks/*/; do
   echo "==> $b"
-  (cd "$b" && mvn -q -DskipTests compile)
+  if [ "$(basename "$b")" = "structured-concurrency" ]; then
+    (cd "$b" && JAVA_HOME="$(mise where java@27.0.0)" mvn -q -DskipTests compile)
+  else
+    (cd "$b" && mvn -q -DskipTests compile)
+  fi
 done
 """
 
@@ -24,10 +33,81 @@ mvn -q -DskipTests compile
 java -cp target/classes dev.lukasgrigis.foundations.datamodeling.DataModelingDemo
 """
 
+# structured-concurrency is a PREVIEW BRICK: StructuredTaskScope is JEP 533 (seventh preview,
+# JDK 27), finalisation is only a candidate (JEP 543, targeted JDK 28). Every task below compiles
+# AND runs with JDK 27.0.0 and --enable-preview, named by absolute path, independent of the
+# [tools] java above — this brick does not move to a newer JDK just because [tools] does.
+
+[tasks."structured-concurrency:build"]
+description = "Compile the structured-concurrency brick — JDK 27, --release 27 --enable-preview (JEP 533)"
+run = '''
+cd "$MISE_PROJECT_ROOT/bricks/structured-concurrency"
+JAVA_HOME="$(mise where java@27.0.0)" mvn -q -DskipTests compile
+'''
+
+[tasks."structured-concurrency:sibling-cancellation"]
+description = "Proof 1 — ms until the caller has the exception: one sibling fails at 100 ms, the other would run 5 s"
+run = '''
+mise run structured-concurrency:build
+"$(mise where java@27.0.0)/bin/java" --enable-preview \
+  -cp "$MISE_PROJECT_ROOT/bricks/structured-concurrency/target/classes" \
+  dev.lukasgrigis.foundations.structuredconcurrency.proof.SiblingCancellation
+'''
+
+[tasks."structured-concurrency:leaked-threads"]
+description = "Proof 2 — worker threads still alive 1 s after the caller gives up"
+run = '''
+mise run structured-concurrency:build
+"$(mise where java@27.0.0)/bin/java" --enable-preview \
+  -cp "$MISE_PROJECT_ROOT/bricks/structured-concurrency/target/classes" \
+  dev.lukasgrigis.foundations.structuredconcurrency.proof.LeakedThreads
+'''
+
+[tasks."structured-concurrency:timeout"]
+description = "Proof 3 — elapsed ms for a 300 ms deadline, hand-rolled vs. scope withTimeout"
+run = '''
+mise run structured-concurrency:build
+"$(mise where java@27.0.0)/bin/java" --enable-preview \
+  -cp "$MISE_PROJECT_ROOT/bricks/structured-concurrency/target/classes" \
+  dev.lukasgrigis.foundations.structuredconcurrency.proof.Timeout
+'''
+
+[tasks."structured-concurrency:first-wins"]
+description = "Proof 4 — elapsed ms for the fastest of three racing mirrors"
+run = '''
+mise run structured-concurrency:build
+"$(mise where java@27.0.0)/bin/java" --enable-preview \
+  -cp "$MISE_PROJECT_ROOT/bricks/structured-concurrency/target/classes" \
+  dev.lukasgrigis.foundations.structuredconcurrency.proof.FirstWins
+'''
+
+[tasks."structured-concurrency"]
+description = "The structured-concurrency brick — StructuredTaskScope (JEP 533, preview) vs. hand-rolled ExecutorService fan-out"
+run = '''
+set -e
+JAVA27="$(mise where java@27.0.0)/bin/java"
+[ -x "$JAVA27" ] || { echo "missing JDK: mise install java@27.0.0"; exit 2; }
+mise run structured-concurrency:build
+CLASSES="$MISE_PROJECT_ROOT/bricks/structured-concurrency/target/classes"
+PKG=dev.lukasgrigis.foundations.structuredconcurrency.proof
+
+echo "================= SiblingCancellation ================="
+"$JAVA27" --enable-preview -cp "$CLASSES" "$PKG.SiblingCancellation"
+echo
+echo "================= LeakedThreads ================="
+"$JAVA27" --enable-preview -cp "$CLASSES" "$PKG.LeakedThreads"
+echo
+echo "================= Timeout ================="
+"$JAVA27" --enable-preview -cp "$CLASSES" "$PKG.Timeout"
+echo
+echo "================= FirstWins ================="
+"$JAVA27" --enable-preview -cp "$CLASSES" "$PKG.FirstWins"
+'''
+
 [tasks.demo]
 description = "Run every brick's demo in turn"
 run = """
-for b in data-modeling jdk27-defaults; do
+for b in data-modeling jdk27-defaults structured-concurrency; do
   echo "========== $b =========="
   mise run "$b"
   echo
