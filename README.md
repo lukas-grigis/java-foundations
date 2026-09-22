@@ -1,7 +1,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Java-27-ED8B00?logo=openjdk&logoColor=white" alt="Java 27">
   <img src="https://img.shields.io/badge/Maven-standalone_bricks-C71A36?logo=apachemaven&logoColor=white" alt="Maven, standalone bricks">
-  <img src="https://img.shields.io/badge/bricks-5-2E8B57" alt="5 bricks">
+  <img src="https://img.shields.io/badge/bricks-6-2E8B57" alt="6 bricks">
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License">
 </p>
 
@@ -28,6 +28,7 @@ Folders are slugs, nothing is numbered.
 | [structured-concurrency](bricks/structured-concurrency/) *(preview, JDK 27)* | `StructuredTaskScope` turns sibling cancellation, thread cleanup and deadlines into a guarantee instead of a discipline every caller maintains by hand | Concurrency | — |
 | [virtual-threads-pinning](bricks/virtual-threads-pinning/) | JEP 491 changed the cost of `synchronized`, not its meaning — one binary, two JVMs, 2 threads inside a critical section vs. 64 | Concurrency | — |
 | [memory-model](bricks/memory-model/) | `synchronized`, `volatile` and `final` are three different promises, not three flavors of thread safety: one against lost updates, one against stale reads, one against half-built objects | Concurrency | — |
+| [scoped-values](bricks/scoped-values/) | `ThreadLocal` did two jobs: virtual threads break the cache, scoped values (JEP 506) replace the context — 8 formatters become 10,000, a leaked tenant becomes none | Concurrency | — |
 
 Each brick's README carries the thesis, a file-by-file tour, and the experiment to run yourself.
 

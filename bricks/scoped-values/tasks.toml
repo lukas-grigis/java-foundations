@@ -1,0 +1,21 @@
+# This brick's mise tasks, picked up by the root mise.toml. Without mise: see README.md.
+
+["scoped-values:build"]
+description = "Compile the scoped-values brick"
+run = "brick build"
+
+["scoped-values:formatter-instances"]
+description = "Proof 1 — how many SimpleDateFormat a ThreadLocal cache builds: platform pool vs virtual threads vs one shared formatter"
+run = "brick proof FormatterInstances"
+
+["scoped-values:context-leak"]
+description = "Proof 2 — a tenant that is never cleared: ThreadLocal on a pool vs on virtual threads vs ScopedValue"
+run = "brick proof ContextLeak"
+
+["scoped-values:write-back"]
+description = "Proof 3 — a helper switches the tenant: which one does its caller see afterwards, ThreadLocal vs ScopedValue"
+run = "brick proof WriteBack"
+
+["scoped-values"]
+description = "The scoped-values brick — ThreadLocal's two jobs: virtual threads break the cache, scoped values replace the context"
+run = "brick all formatter-instances context-leak write-back"
