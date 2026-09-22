@@ -38,7 +38,7 @@ public final class StillPins {
         initializer.join();
         long elapsedMs = millisSince(start);
 
-        System.out.println("waiting-on-init  maxInside = " + maxInside.get() + "    elapsed = " + elapsedMs + " ms");
+        System.out.println("JDK " + Runtime.version().feature() + "   waiting-on-init  maxInside = " + maxInside.get() + "    elapsed = " + elapsedMs + " ms");
     }
 
     private static long millisSince(long startNanos) {

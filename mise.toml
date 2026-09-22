@@ -1,284 +1,35 @@
-# Tasks never use `mise x`: it runs the command in a subprocess whose working directory is not
-# reliably the one you cd'd to. Every task below cds through $MISE_PROJECT_ROOT and keeps paths
-# absolute, so it works from a terminal, an IDE, or a subdirectory. A brick that needs a JDK
-# other than [tools] below names it by absolute path via `mise where java@<version>`.
+# Every brick is a standalone Maven project that declares its own tasks in bricks/<slug>/tasks.toml,
+# picked up by the glob below — a new brick needs no line in this file. Those tasks call bin/brick,
+# the one runner that knows how to compile a brick and start a JVM. Nothing uses `mise x`: it runs
+# the command in a subprocess whose working directory is not reliably the one you cd'd to.
 
 [tools]
 java = "27"
 maven = "3"
 
-# ─── Build ───────────────────────────────────────────────────────────────────
+[env]
+_.path = ["{{config_root}}/bin"]
+
+[task_config]
+includes = ["bricks/*/tasks.toml"]
 
 [tasks.build]
-description = "Compile every brick"
+description = "Compile every brick, run nothing"
 run = """
-for b in bricks/*/; do
-  # a folder without a pom is not a brick, e.g. the ignored target/ left behind by another branch
-  [ -f "$b/pom.xml" ] || continue
+for f in bricks/*/tasks.toml; do
+  b="${f%tasks.toml}"
   echo "==> $b"
-  if [ "$(basename "$b")" = "structured-concurrency" ]; then
-    (cd "$b" && JAVA_HOME="$(mise where java@27.0.0)" mvn -q -DskipTests compile)
-  else
-    (cd "$b" && mvn -q -DskipTests compile)
-  fi
+  mise run -q "$(basename "$b"):build"
 done
 """
-
-# ─── Bricks ──────────────────────────────────────────────────────────────────
-# One task per brick. Each brick is a standalone Maven project — no parent pom.
-
-[tasks."data-modeling"]
-description = "The data-modeling brick — sealed outcomes + records + exhaustive switch as ONE primitive"
-dir = "bricks/data-modeling"
-run = """
-mvn -q -DskipTests compile
-java -cp target/classes dev.lukasgrigis.foundations.datamodeling.DataModelingDemo
-"""
-
-[tasks."memory-model:build"]
-description = "Compile the memory-model brick"
-run = '''
-cd "$MISE_PROJECT_ROOT/bricks/memory-model"
-mvn -q compile
-'''
-
-[tasks."memory-model:lost-updates"]
-description = "Proof 1 — counter++ from two threads: plain / volatile / synchronized"
-run = '''
-mise run memory-model:build
-java -cp "$MISE_PROJECT_ROOT/bricks/memory-model/target/classes" dev.lukasgrigis.foundations.memorymodel.proof.LostUpdates
-'''
-
-[tasks."memory-model:stale-read"]
-description = "Proof 2 — a worker spins on a stop flag: plain boolean vs volatile boolean"
-run = '''
-mise run memory-model:build
-java -cp "$MISE_PROJECT_ROOT/bricks/memory-model/target/classes" dev.lukasgrigis.foundations.memorymodel.proof.StaleRead
-'''
-
-[tasks."memory-model:unsafe-publication"]
-description = "Proof 3 — an object handed over through a data race: final field vs plain field"
-run = '''
-mise run memory-model:build
-java -cp "$MISE_PROJECT_ROOT/bricks/memory-model/target/classes" dev.lukasgrigis.foundations.memorymodel.proof.UnsafePublication
-'''
-
-[tasks."memory-model"]
-description = "The memory-model brick — synchronized, volatile and final: three different promises, three proofs"
-run = '''
-set -e
-mise run memory-model:build
-CLASSES="$MISE_PROJECT_ROOT/bricks/memory-model/target/classes"
-PKG=dev.lukasgrigis.foundations.memorymodel.proof
-
-echo "================= LostUpdates ================="
-java -cp "$CLASSES" "$PKG.LostUpdates"
-echo
-echo "================= StaleRead ================="
-java -cp "$CLASSES" "$PKG.StaleRead"
-echo
-echo "================= UnsafePublication ================="
-java -cp "$CLASSES" "$PKG.UnsafePublication"
-'''
-
-# structured-concurrency is a PREVIEW BRICK: StructuredTaskScope is JEP 533 (seventh preview,
-# JDK 27), finalisation is only a candidate (JEP 543, targeted JDK 28). Every task below compiles
-# AND runs with JDK 27.0.0 and --enable-preview, named by absolute path, independent of the
-# [tools] java above — this brick does not move to a newer JDK just because [tools] does.
-
-[tasks."structured-concurrency:build"]
-description = "Compile the structured-concurrency brick — JDK 27, --release 27 --enable-preview (JEP 533)"
-run = '''
-cd "$MISE_PROJECT_ROOT/bricks/structured-concurrency"
-JAVA_HOME="$(mise where java@27.0.0)" mvn -q -DskipTests compile
-'''
-
-[tasks."structured-concurrency:sibling-cancellation"]
-description = "Proof 1 — ms until the caller has the exception: one sibling fails at 100 ms, the other would run 5 s"
-run = '''
-mise run structured-concurrency:build
-"$(mise where java@27.0.0)/bin/java" --enable-preview \
-  -cp "$MISE_PROJECT_ROOT/bricks/structured-concurrency/target/classes" \
-  dev.lukasgrigis.foundations.structuredconcurrency.proof.SiblingCancellation
-'''
-
-[tasks."structured-concurrency:leaked-threads"]
-description = "Proof 2 — worker threads still alive 1 s after the caller gives up"
-run = '''
-mise run structured-concurrency:build
-"$(mise where java@27.0.0)/bin/java" --enable-preview \
-  -cp "$MISE_PROJECT_ROOT/bricks/structured-concurrency/target/classes" \
-  dev.lukasgrigis.foundations.structuredconcurrency.proof.LeakedThreads
-'''
-
-[tasks."structured-concurrency:timeout"]
-description = "Proof 3 — elapsed ms for a 300 ms deadline, hand-rolled vs. scope withTimeout"
-run = '''
-mise run structured-concurrency:build
-"$(mise where java@27.0.0)/bin/java" --enable-preview \
-  -cp "$MISE_PROJECT_ROOT/bricks/structured-concurrency/target/classes" \
-  dev.lukasgrigis.foundations.structuredconcurrency.proof.Timeout
-'''
-
-[tasks."structured-concurrency:first-wins"]
-description = "Proof 4 — elapsed ms for the fastest of three racing mirrors"
-run = '''
-mise run structured-concurrency:build
-"$(mise where java@27.0.0)/bin/java" --enable-preview \
-  -cp "$MISE_PROJECT_ROOT/bricks/structured-concurrency/target/classes" \
-  dev.lukasgrigis.foundations.structuredconcurrency.proof.FirstWins
-'''
-
-[tasks."structured-concurrency"]
-description = "The structured-concurrency brick — StructuredTaskScope (JEP 533, preview) vs. hand-rolled ExecutorService fan-out"
-run = '''
-set -e
-JAVA27="$(mise where java@27.0.0)/bin/java"
-[ -x "$JAVA27" ] || { echo "missing JDK: mise install java@27.0.0"; exit 2; }
-mise run structured-concurrency:build
-CLASSES="$MISE_PROJECT_ROOT/bricks/structured-concurrency/target/classes"
-PKG=dev.lukasgrigis.foundations.structuredconcurrency.proof
-
-echo "================= SiblingCancellation ================="
-"$JAVA27" --enable-preview -cp "$CLASSES" "$PKG.SiblingCancellation"
-echo
-echo "================= LeakedThreads ================="
-"$JAVA27" --enable-preview -cp "$CLASSES" "$PKG.LeakedThreads"
-echo
-echo "================= Timeout ================="
-"$JAVA27" --enable-preview -cp "$CLASSES" "$PKG.Timeout"
-echo
-echo "================= FirstWins ================="
-"$JAVA27" --enable-preview -cp "$CLASSES" "$PKG.FirstWins"
-'''
 
 [tasks.demo]
-description = "Run every brick's demo in turn"
+description = "Run every brick in turn"
 run = """
-for b in data-modeling memory-model jdk27-defaults structured-concurrency virtual-threads-pinning; do
+for f in bricks/*/tasks.toml; do
+  b="$(basename "${f%/tasks.toml}")"
   echo "========== $b =========="
   mise run "$b"
-  echo
-done
-"""
-
-# jdk27-defaults compiles at --release 26 and runs unchanged on JDK 26.0.1 and JDK 27.0.0 — the
-# difference between the two JVMs is the claim, so every proof names both JDKs by absolute path
-# via `mise where`, independent of whatever [tools] java resolves to.
-
-[tasks."jdk27-defaults:build"]
-description = "Compile the jdk27-defaults brick — release 26, so one artifact loads on both JVMs"
-run = '''
-cd "$MISE_PROJECT_ROOT/bricks/jdk27-defaults"
-JAVA_HOME="$(mise where java@26.0.1)" mvn -q compile
-'''
-
-[tasks."jdk27-defaults:bytes-per-session"]
-description = "Proof 1 — heap bytes per stored session, JDK 26 vs 27, with the UseCompactObjectHeaders flag as the control (JEP 534)"
-run = '''
-set -e
-BRICK="$MISE_PROJECT_ROOT/bricks/jdk27-defaults"
-CLASSES="$BRICK/target/classes"
-MAIN=dev.lukasgrigis.foundations.jdk27defaults.proof.BytesPerSession
-cd "$BRICK"
-JAVA_HOME="$(mise where java@26.0.1)" mvn -q compile
-JAVA26="$(mise where java@26.0.1)/bin/java"
-JAVA27="$(mise where java@27.0.0)/bin/java"
-"$JAVA26" -Xms512m -Xmx512m -XX:+UseG1GC -cp "$CLASSES" "$MAIN"
-"$JAVA26" -Xms512m -Xmx512m -XX:+UseG1GC -XX:+UseCompactObjectHeaders -cp "$CLASSES" "$MAIN"
-"$JAVA27" -Xms512m -Xmx512m -XX:+UseG1GC -cp "$CLASSES" "$MAIN"
-"$JAVA27" -Xms512m -Xmx512m -XX:+UseG1GC -XX:-UseCompactObjectHeaders -cp "$CLASSES" "$MAIN"
-'''
-
-[tasks."jdk27-defaults:which-collector"]
-description = "Proof 2 — collector the JVM selects under a single-CPU constraint, JDK 26 vs 27, unconstrained as the control (JEP 523)"
-run = '''
-set -e
-BRICK="$MISE_PROJECT_ROOT/bricks/jdk27-defaults"
-CLASSES="$BRICK/target/classes"
-MAIN=dev.lukasgrigis.foundations.jdk27defaults.proof.WhichCollector
-cd "$BRICK"
-JAVA_HOME="$(mise where java@26.0.1)" mvn -q compile
-JAVA26="$(mise where java@26.0.1)/bin/java"
-JAVA27="$(mise where java@27.0.0)/bin/java"
-"$JAVA26" -XX:ActiveProcessorCount=1 -cp "$CLASSES" "$MAIN"
-"$JAVA27" -XX:ActiveProcessorCount=1 -cp "$CLASSES" "$MAIN"
-"$JAVA26" -cp "$CLASSES" "$MAIN"
-"$JAVA27" -cp "$CLASSES" "$MAIN"
-'''
-
-[tasks."jdk27-defaults:idle-footprint"]
-description = "Proof 3 — resident memory of an idle JVM, Serial vs G1, JDK 27 only"
-run = '''
-set -e
-BRICK="$MISE_PROJECT_ROOT/bricks/jdk27-defaults"
-CLASSES="$BRICK/target/classes"
-MAIN=dev.lukasgrigis.foundations.jdk27defaults.proof.IdleFootprint
-cd "$BRICK"
-JAVA_HOME="$(mise where java@26.0.1)" mvn -q compile
-JAVA27="$(mise where java@27.0.0)/bin/java"
-"$JAVA27" -Xms32m -Xmx32m -XX:+UseSerialGC -cp "$CLASSES" "$MAIN"
-"$JAVA27" -Xms32m -Xmx32m -XX:+UseG1GC -cp "$CLASSES" "$MAIN"
-'''
-
-[tasks."jdk27-defaults"]
-description = "The jdk27-defaults brick — G1 everywhere and compact object headers, two defaults that changed with no code change (JEP 523, JEP 534)"
-run = """
-set -e
-JAVA26="$(mise where java@26.0.1)/bin/java"
-JAVA27="$(mise where java@27.0.0)/bin/java"
-for j in "$JAVA26" "$JAVA27"; do
-  [ -x "$j" ] || { echo "missing JDK: mise install java@26.0.1 java@27.0.0"; exit 2; }
-done
-
-echo "================= BytesPerSession (JEP 534) ================="
-mise run jdk27-defaults:bytes-per-session
-echo
-
-echo "================= WhichCollector (JEP 523) ================="
-mise run jdk27-defaults:which-collector
-echo
-
-echo "================= IdleFootprint (Serial vs G1 on 27) ================="
-mise run jdk27-defaults:idle-footprint
-"""
-
-# virtual-threads-pinning compiles at --release 21 and runs unchanged on JDK 21.0.2 and JDK 26.0.1 —
-# JEP 491 shipped in JDK 24, between the two. run-proof.sh names both JDKs by absolute path and fixes
-# the carrier count at 2, so the numbers do not depend on this machine's core count.
-
-[tasks."virtual-threads-pinning:build"]
-description = "Compile the virtual-threads-pinning brick — release 21, so one artifact loads on both JVMs"
-run = '''
-cd "$MISE_PROJECT_ROOT/bricks/virtual-threads-pinning"
-mvn -q compile
-'''
-
-[tasks."virtual-threads-pinning:blocking-inside-synchronized"]
-description = "Proof 1 — 64 virtual threads, each blocking inside its OWN synchronized lock: maxInside on JDK 21 vs JDK 26"
-run = '"$MISE_PROJECT_ROOT/bricks/virtual-threads-pinning/run-proof.sh" BlockingInsideSynchronized'
-
-[tasks."virtual-threads-pinning:blocking-inside-reentrant-lock"]
-description = "Proof 2 — the control: the same shape with a ReentrantLock, same numbers on both JDKs"
-run = '"$MISE_PROJECT_ROOT/bricks/virtual-threads-pinning/run-proof.sh" BlockingInsideReentrantLock'
-
-[tasks."virtual-threads-pinning:shared-lock"]
-description = "Proof 3 — one SHARED monitor: maxInside stays 1 on both JDKs, because this is contention, not pinning"
-run = '"$MISE_PROJECT_ROOT/bricks/virtual-threads-pinning/run-proof.sh" SharedLock'
-
-[tasks."virtual-threads-pinning:still-pins"]
-description = "Proof 4 — does waiting for another thread's class init still pin, as the JEP 491 text says?"
-run = '"$MISE_PROJECT_ROOT/bricks/virtual-threads-pinning/run-proof.sh" StillPins'
-
-[tasks."virtual-threads-pinning"]
-description = "The virtual-threads-pinning brick — JEP 491 changed the cost of synchronized, not its meaning"
-run = """
-set -e
-mise run virtual-threads-pinning:build
-export VTP_SKIP_BUILD=1
-for proof in blocking-inside-synchronized blocking-inside-reentrant-lock shared-lock still-pins; do
-  echo "========== $proof =========="
-  mise run "virtual-threads-pinning:$proof"
   echo
 done
 """

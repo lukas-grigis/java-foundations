@@ -1,0 +1,9 @@
+# This brick's mise tasks, picked up by the root mise.toml. Without mise: see README.md.
+
+["data-modeling:build"]
+description = "Compile the data-modeling brick"
+run = "brick build"
+
+["data-modeling"]
+description = "The data-modeling brick — sealed outcomes + records + exhaustive switch as ONE primitive"
+run = "brick main DataModelingDemo"

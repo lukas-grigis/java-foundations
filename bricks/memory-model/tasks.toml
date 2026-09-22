@@ -1,0 +1,21 @@
+# This brick's mise tasks, picked up by the root mise.toml. Without mise: see README.md.
+
+["memory-model:build"]
+description = "Compile the memory-model brick"
+run = "brick build"
+
+["memory-model:lost-updates"]
+description = "Proof 1 — counter++ from two threads: plain / volatile / synchronized"
+run = "brick proof LostUpdates"
+
+["memory-model:stale-read"]
+description = "Proof 2 — a worker spins on a stop flag: plain boolean vs volatile boolean"
+run = "brick proof StaleRead"
+
+["memory-model:unsafe-publication"]
+description = "Proof 3 — an object handed over through a data race: final field vs plain field"
+run = "brick proof UnsafePublication"
+
+["memory-model"]
+description = "The memory-model brick — synchronized, volatile and final: three different promises, three proofs"
+run = "brick all lost-updates stale-read unsafe-publication"

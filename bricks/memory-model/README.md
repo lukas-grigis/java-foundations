@@ -12,6 +12,10 @@ The Java Memory Model answers one question — who sees what, and when. `synchro
 | Does a plain-`boolean` spin loop ever notice a flag another thread set? | `mise run memory-model:stale-read` | plain 3000 ms — capped, never noticed (5/5)<br>volatile 0.0367–0.0395 ms (5 runs) | "The compiler is free to read the field `this.done` just once, and reuse the cached value in each execution of the loop." — [§17.3](https://docs.oracle.com/javase/specs/jls/se26/html/jls-17.html#jls-17.3).<br>"A write to a volatile variable v synchronizes-with all subsequent reads of v by any thread" — [§17.4.4](https://docs.oracle.com/javase/specs/jls/se26/html/jls-17.html#jls-17.4.4) |
 | Publishing through a data race, no lock — how often does the reader see a field still at its default 0? | `mise run memory-model:unsafe-publication` | plain 40–206 zero-reads / ~17.5M–20.9M reads (5 runs)<br>final 0 zero-reads / ~18.5M–23.9M reads (5/5) | "A thread that can only see a reference to an object after that object has been completely initialized is guaranteed to see the correctly initialized values for that object's `final` fields." — [§17.5](https://docs.oracle.com/javase/specs/jls/se26/html/jls-17.html#jls-17.5) |
 
+Without mise: `cd bricks/memory-model && mvn -q compile`, then run any of
+`dev.lukasgrigis.foundations.memorymodel.proof.{LostUpdates,StaleRead,UnsafePublication}` with
+`java -cp target/classes <FQCN>` on JDK 26 or later (pom is --release 26).
+
 ## The code you would actually write
 
 - **`example/HitCounter.java`** — one `int` field, one `hits++` line. `VolatileHitCounter` is
