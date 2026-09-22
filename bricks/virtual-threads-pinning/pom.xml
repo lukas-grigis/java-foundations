@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>dev.lukasgrigis.foundations</groupId>
+    <artifactId>virtual-threads-pinning</artifactId>
+    <version>0.1.0</version>
+    <name>virtual-threads-pinning</name>
+
+    <description>
+        Java Foundations, the virtual-threads-pinning brick, JEP 491 changed the cost of synchronized, not its meaning.
+        Pure JDK, no dependencies.
+    </description>
+
+    <properties>
+        <!--
+            21, not 26, and that is the experiment: the SAME class files must load on a JDK 21 JVM
+            (class-file major 65) and on a JDK 26 JVM. JEP 491 changed the JVM's implementation of
+            synchronized, not the bytecode and not the class library, so one binary shows both
+            behaviours. Compiling at 26 would emit major 70 and JDK 21 would refuse to load it:
+            "UnsupportedClassVersionError ... class file version 70.0, this version of the Java
+            Runtime only recognizes class file versions up to 65.0".
+        -->
+        <maven.compiler.release>21</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <!-- No dependencies: the whole point is what the language does on its own. -->
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <compilerArgs>
+                        <arg>-Xlint:all</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
