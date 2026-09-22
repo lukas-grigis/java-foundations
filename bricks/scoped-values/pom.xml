@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>dev.lukasgrigis.foundations</groupId>
+    <artifactId>scoped-values</artifactId>
+    <version>0.1.0</version>
+    <name>scoped-values</name>
+
+    <description>
+        Java Foundations, the scoped-values brick, ThreadLocal did two jobs: a per-thread cache and a context
+        carrier. Virtual threads break the first, scoped values (JEP 506) replace the second. Pure JDK, no dependencies.
+    </description>
+
+    <properties>
+        <!--
+            27, the root toolchain. ScopedValue is final since JDK 25 (JEP 506), so the brick needs no preview
+            flag; StructuredTaskScope, which it leaves out, is still preview in 27 (JEP 533).
+        -->
+        <maven.compiler.release>27</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <!-- No dependencies: the whole point is what the language does on its own. -->
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <compilerArgs>
+                        <arg>-Xlint:all</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
