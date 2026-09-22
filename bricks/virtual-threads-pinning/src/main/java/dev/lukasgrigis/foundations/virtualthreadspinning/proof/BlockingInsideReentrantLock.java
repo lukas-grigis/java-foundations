@@ -36,7 +36,7 @@ public final class BlockingInsideReentrantLock {
         } // close() returns once every thread is done
         long elapsedMs = millisSince(start);
 
-        System.out.println("ReentrantLock    maxInside = " + maxInside.get() + "    elapsed = " + elapsedMs + " ms");
+        System.out.println("JDK " + Runtime.version().feature() + "   ReentrantLock    maxInside = " + maxInside.get() + "    elapsed = " + elapsedMs + " ms");
     }
 
     private static long millisSince(long startNanos) {

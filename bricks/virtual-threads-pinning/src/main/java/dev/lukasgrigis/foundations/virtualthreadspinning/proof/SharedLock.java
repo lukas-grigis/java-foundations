@@ -39,7 +39,7 @@ public final class SharedLock {
         } // close() returns once every thread is done
         long elapsedMs = millisSince(start);
 
-        System.out.println("shared lock      maxInside = " + maxInside.get() + "    elapsed = " + elapsedMs + " ms");
+        System.out.println("JDK " + Runtime.version().feature() + "   shared lock      maxInside = " + maxInside.get() + "    elapsed = " + elapsedMs + " ms");
     }
 
     private static long millisSince(long startNanos) {

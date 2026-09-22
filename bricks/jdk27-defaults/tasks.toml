@@ -1,0 +1,37 @@
+# This brick's mise tasks, picked up by the root mise.toml. Without mise: see README.md.
+#
+# Compiles at --release 26 with JDK 26.0.1 and runs the same classes on JDK 26.0.1 and JDK 27.0.0 —
+# the difference between the two JVMs is the claim, so every run names its JDK.
+
+["jdk27-defaults:build"]
+description = "Compile the jdk27-defaults brick — release 26, so one artifact loads on both JVMs"
+run = "brick build java@26.0.1"
+
+["jdk27-defaults:bytes-per-session"]
+description = "Proof 1 — heap bytes per stored session, JDK 26 vs 27, with the UseCompactObjectHeaders flag as the control (JEP 534)"
+run = """brick proof BytesPerSession \
+  'java@26.0.1 -Xms512m -Xmx512m -XX:+UseG1GC' \
+  'java@26.0.1 -Xms512m -Xmx512m -XX:+UseG1GC -XX:+UseCompactObjectHeaders' \
+  'java@27.0.0 -Xms512m -Xmx512m -XX:+UseG1GC' \
+  'java@27.0.0 -Xms512m -Xmx512m -XX:+UseG1GC -XX:-UseCompactObjectHeaders'"""
+
+["jdk27-defaults:which-collector"]
+description = "Proof 2 — collector the JVM selects under a single-CPU constraint, JDK 26 vs 27, unconstrained as the control (JEP 523)"
+run = """brick proof WhichCollector \
+  'java@26.0.1 -XX:ActiveProcessorCount=1' \
+  'java@27.0.0 -XX:ActiveProcessorCount=1' \
+  'java@26.0.1' \
+  'java@27.0.0'"""
+
+["jdk27-defaults:idle-footprint"]
+description = "Proof 3 — resident memory of an idle JVM, Serial vs G1, JDK 27 only"
+run = """brick proof IdleFootprint \
+  'java@27.0.0 -Xms32m -Xmx32m -XX:+UseSerialGC' \
+  'java@27.0.0 -Xms32m -Xmx32m -XX:+UseG1GC'"""
+
+["jdk27-defaults"]
+description = "The jdk27-defaults brick — G1 everywhere and compact object headers, two defaults that changed with no code change (JEP 523, JEP 534)"
+run = """brick all \
+  'bytes-per-session=BytesPerSession (JEP 534)' \
+  'which-collector=WhichCollector (JEP 523)' \
+  'idle-footprint=IdleFootprint (Serial vs G1 on 27)'"""

@@ -31,40 +31,44 @@ Folders are slugs, nothing is numbered.
 
 Each brick's README carries the thesis, a file-by-file tour, and the experiment to run yourself.
 
-## How to run
+## Run it
 
 ```
-mise run data-modeling           # build + run the data-modeling brick
-mise run memory-model            # build + run the memory-model brick
-mise run jdk27-defaults          # build + run the jdk27-defaults brick, on JDK 26 and JDK 27
-mise run structured-concurrency  # build + run the structured-concurrency brick (JDK 27, preview)
-mise run virtual-threads-pinning # build + run the virtual-threads-pinning brick, on JDK 21 and JDK 26
-mise run demo                    # run every brick in turn
-mise run build                   # compile every brick, run nothing
+mise install                         # once: Java 27 and Maven 3
+mise run demo                        # every brick, one after the other
+mise run memory-model                # one brick: build it, then every proof
+mise run memory-model:stale-read     # one proof
+mise tasks                           # every brick and proof, with what it shows
 ```
 
-Or without mise: `cd bricks/<brick> && mvn -q compile && java -cp target/classes <MainClass>` —
-each brick's README names its main class(es). Tool versions are pinned in [mise.toml](mise.toml)
-(Java 27, Maven 3). Three bricks name their JDKs in their own mise tasks, independent of the root
-toolchain: `jdk27-defaults` runs the same classes on JDK 26.0.1 and 27.0.0,
-`virtual-threads-pinning` on JDK 21.0.2 and 26.0.1, and `structured-concurrency` is pinned to
-JDK 27.0.0 with `--enable-preview`.
+A brick that needs another JDK says so on its first run, with the exact line to install it
+(`missing JDK: mise install java@26.0.1`): `jdk27-defaults` runs the same classes on JDK 26.0.1
+and 27.0.0, `virtual-threads-pinning` on JDK 21.0.2 and 26.0.1, and `structured-concurrency` is
+pinned to JDK 27.0.0 with `--enable-preview`.
+
+Without mise: `cd bricks/<brick> && mvn -q compile && java -cp target/classes <MainClass>` — each
+brick's README names its main classes and the JDK they need.
 
 ## Project structure
 
 ```
 java-foundations/
-├── mise.toml                    # pinned toolchain + one task per brick
-└── bricks/
-    ├── data-modeling/           # standalone Maven project — own pom, own README
-    ├── jdk27-defaults/          # release 26, runs unchanged on JDK 26 and JDK 27
-    ├── memory-model/            # standalone Maven project — own pom, own README
-    ├── structured-concurrency/  # preview brick — JDK 27 with --enable-preview until JEP 543 lands
-    └── virtual-threads-pinning/ # release 21, runs unchanged on JDK 21 and JDK 26
+├── mise.toml          # the toolchain, build and demo; picks up every bricks/*/tasks.toml
+├── bin/brick          # the one runner behind every brick task
+└── bricks/<brick>/    # one standalone Maven project per brick
+    ├── pom.xml        # the Java release it compiles for
+    ├── tasks.toml     # its tasks: which JDK builds it, which JDKs and flags run which proof
+    ├── README.md      # the thesis, the code you would actually write, the recorded run
+    └── src/main/java/dev/lukasgrigis/foundations/<brick>/
+        ├── example/   # code as it would look in a service
+        └── proof/     # one question each, one number each
 ```
 
 No parent pom, no aggregator: a brick you can't copy out of the repo and run isn't standalone.
-Packages follow `dev.lukasgrigis.foundations.<brick>` — one subpackage per brick.
+Packages follow `dev.lukasgrigis.foundations.<brick>` with the dashes removed — one subpackage per
+brick. `data-modeling`, the first brick, keeps its classes in one package, without the
+`example/` and `proof/` split. A new brick is a folder with a `pom.xml` and a `tasks.toml`, plus
+its row in the table above and the count in the bricks badge; nothing else in the root changes.
 
 ## License
 

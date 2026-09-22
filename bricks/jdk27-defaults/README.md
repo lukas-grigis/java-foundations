@@ -12,6 +12,17 @@ binary runs them.
 | Which collector does the JVM choose when nobody tells it (JEP 523), on JDK 26 vs JDK 27?                                                                                                                                   | `mise run jdk27-defaults:which-collector`   | `0` (Serial) on 26.0.1 → `1` (G1) on 27, both under a single-CPU constraint; `1` on both with no constraint                                  | JEP 523, Description: "If you do not specify a garbage collector on the command line then the JVM will always select G1, regardless of the number of processors and the available physical memory." — [openjdk.org/jeps/523](https://openjdk.org/jeps/523)                                                                                             |
 | What does the Serial→G1 switch cost an idle JVM in resident memory, on JDK 27?                                                                                                                                             | `mise run jdk27-defaults:idle-footprint`    | 42.7–43.2 MB (Serial) → 43.9–44.0 MB (G1), about 0.8–1.3 MB more                                                                             | JEP 523, Goals: "the performance metrics of throughput, latency, memory footprint, and startup time should not degrade significantly" for environments that used to get Serial — [openjdk.org/jeps/523](https://openjdk.org/jeps/523)                                                                                                                  |
 
+Without mise: `cd bricks/jdk27-defaults && JAVA_HOME="$(mise where java@26.0.1)" mvn -q compile`,
+then one line per JDK, e.g. for `BytesPerSession`:
+
+```
+$(mise where java@26.0.1)/bin/java -Xms512m -Xmx512m -XX:+UseG1GC -cp target/classes dev.lukasgrigis.foundations.jdk27defaults.proof.BytesPerSession
+$(mise where java@27.0.0)/bin/java -Xms512m -Xmx512m -XX:+UseG1GC -cp target/classes dev.lukasgrigis.foundations.jdk27defaults.proof.BytesPerSession
+```
+
+The other flag combinations (`-XX:+UseCompactObjectHeaders`, `-XX:ActiveProcessorCount=1`, the
+Serial/G1 pair for `IdleFootprint`) are in `tasks.toml`.
+
 ## The code you would actually write
 
 [`example/SessionRecord.java`](src/main/java/dev/lukasgrigis/foundations/jdk27defaults/example/SessionRecord.java)

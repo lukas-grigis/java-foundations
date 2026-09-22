@@ -1,0 +1,30 @@
+# This brick's mise tasks, picked up by the root mise.toml. Without mise: see README.md.
+#
+# PREVIEW BRICK: StructuredTaskScope is JEP 533 (seventh preview, JDK 27), finalisation is only a
+# candidate (JEP 543, targeted JDK 28). Every task compiles AND runs on JDK 27.0.0 with
+# --enable-preview, independent of the root toolchain — this brick does not move to a newer JDK
+# just because [tools] does.
+
+["structured-concurrency:build"]
+description = "Compile the structured-concurrency brick — JDK 27, --release 27 --enable-preview (JEP 533)"
+run = "brick build java@27.0.0"
+
+["structured-concurrency:sibling-cancellation"]
+description = "Proof 1 — ms until the caller has the exception: one sibling fails at 100 ms, the other would run 5 s"
+run = "brick proof SiblingCancellation 'java@27.0.0 --enable-preview'"
+
+["structured-concurrency:leaked-threads"]
+description = "Proof 2 — worker threads still alive 1 s after the caller gives up"
+run = "brick proof LeakedThreads 'java@27.0.0 --enable-preview'"
+
+["structured-concurrency:timeout"]
+description = "Proof 3 — elapsed ms for a 300 ms deadline, hand-rolled vs. scope withTimeout"
+run = "brick proof Timeout 'java@27.0.0 --enable-preview'"
+
+["structured-concurrency:first-wins"]
+description = "Proof 4 — elapsed ms for the fastest of three racing mirrors"
+run = "brick proof FirstWins 'java@27.0.0 --enable-preview'"
+
+["structured-concurrency"]
+description = "The structured-concurrency brick — StructuredTaskScope (JEP 533, preview) vs. hand-rolled ExecutorService fan-out"
+run = "brick all sibling-cancellation leaked-threads timeout first-wins"

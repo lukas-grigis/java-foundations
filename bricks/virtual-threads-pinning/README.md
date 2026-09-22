@@ -19,7 +19,7 @@ a flag, not a law of the JVM (see below).
 Both JDKs must be installed (`mise install java@openjdk-21.0.2 java@26.0.1`); every task compiles
 once with `--release 21` and runs the SAME class files on both. THREADS = **64**, carrier count
 fixed by `-Djdk.virtualThreadScheduler.parallelism=2 -Djdk.virtualThreadScheduler.maxPoolSize=2`
-(`run-proof.sh`) — JDK 21's `maxInside` predicts from that flag, not core count, and saturates at
+(`tasks.toml`) — JDK 21's `maxInside` predicts from that flag, not core count, and saturates at
 64, written "64 of 64" at the ceiling.
 
 | Question                                                                                    | Run it                                                            | Number on this machine                                                      | What the spec says                                                                                                                                                                                                                                                                                                                                                                                                |

@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# The one runner behind every brick task. A brick declares only what is special about it — which
+# JDK compiles it, which JDKs and JVM flags run which main class — as `brick` calls in its own
+# bricks/<slug>/tasks.toml; everything the bricks share lives here, once.
+#
+#   brick build [java@<v>]                     compile the brick (root toolchain unless a JDK is named)
+#   brick proof <Class> ['java@<v> <flags>'...] build once, then run proof.<Class> once per JVM line
+#   brick main  <Class> ['java@<v> <flags>'...] the same for a class outside the proof package
+#   brick all <proof>[=<Title>]...             build once, then every proof task in order, bannered
+#
+# Called only from mise tasks: mise sets MISE_TASK_FILE (the brick's tasks.toml) and MISE_TASK_NAME.
+# Paths stay absolute and nothing uses `mise x` (see the top of mise.toml for why).
+set -euo pipefail
+
+[ -n "${MISE_TASK_FILE:-}" ] || { echo "brick: run me through a mise task, e.g. mise run memory-model" >&2; exit 2; }
+BRICK="$(cd "$(dirname "$MISE_TASK_FILE")" && pwd)"
+SLUG="${BRICK##*/}"
+case "$MISE_TASK_NAME" in
+  "$SLUG" | "$SLUG":*) ;;
+  *) echo "brick: task '$MISE_TASK_NAME' in bricks/$SLUG/tasks.toml must be named $SLUG or $SLUG:<name>" >&2; exit 2 ;;
+esac
+PKG="dev.lukasgrigis.foundations.${SLUG//-/}"   # the package convention, README "Project structure"
+
+jdk() {  # jdk java@<v> -> absolute JAVA_HOME, or a one-line install hint
+  local home; home="$(mise where "$1" 2>/dev/null)" || true
+  [ -x "$home/bin/java" ] || { echo "missing JDK: mise install $1" >&2; exit 2; }
+  echo "$home"
+}
+
+build() {  # skipped when an enclosing `brick all` of this brick already compiled it
+  [ "${BRICK_BUILT:-}" = "$SLUG" ] && return
+  cd "$BRICK"
+  if [ -n "${1:-}" ]; then local home; home="$(jdk "$1")"; JAVA_HOME="$home" mvn -q -DskipTests compile
+  else mvn -q -DskipTests compile; fi
+}
+
+run() {  # run <fqcn> [jvm lines...]; no line = root toolchain java, no flags
+  local main="$1" line java; shift
+  [ $# -gt 0 ] || set -- ""
+  [ "${BRICK_BUILT:-}" = "$SLUG" ] || mise run -q "$SLUG:build"
+  for line in "$@"; do
+    read -ra argv <<< "$line"
+    java=java
+    case "${argv[0]:-}" in java@*) java="$(jdk "${argv[0]}")"/bin/java; argv=("${argv[@]:1}") ;; esac
+    "$java" ${argv[@]+"${argv[@]}"} -cp "$BRICK/target/classes" "$main"
+  done
+}
+
+usage() { sed -n '2,10p' "$0" >&2; exit 2; }
+
+cmd="${1:-}"; shift || true
+case "$cmd" in
+  build) build "$@" ;;
+  proof) [ $# -ge 1 ] || usage; main="$PKG.proof.$1"; shift; run "$main" "$@" ;;
+  main)  [ $# -ge 1 ] || usage; main="$PKG.$1"; shift; run "$main" "$@" ;;
+  all)
+    mise run -q "$SLUG:build"
+    export BRICK_BUILT="$SLUG"
+    first=1
+    for spec in "$@"; do
+      name="${spec%%=*}"
+      if [ "$spec" != "$name" ]; then title="${spec#*=}"
+      else title="$(echo "$name" | awk -F- '{for (i = 1; i <= NF; i++) printf "%s", toupper(substr($i, 1, 1)) substr($i, 2)}')"; fi
+      [ -n "$first" ] || echo
+      first=
+      echo "================= $title ================="
+      mise run -q "$SLUG:$name"
+    done
+    ;;
+  *) usage ;;
+esac
