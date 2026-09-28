@@ -5,7 +5,7 @@ description = "Compile the memory-model brick"
 run = "brick build"
 
 ["memory-model:lost-updates"]
-description = "Proof 1 — counter++ from two threads: plain / volatile / synchronized"
+description = "Proof 1 — counter++ from two threads: plain / volatile / atomic / synchronized"
 run = "brick proof LostUpdates"
 
 ["memory-model:stale-read"]

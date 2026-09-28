@@ -8,7 +8,7 @@ The Java Memory Model answers one question — who sees what, and when. `synchro
 
 | Question | Run it | Number on this machine | What the spec says |
 |---|---|---|---|
-| Does `counter++` from two threads end up at 2N? | `mise run memory-model:lost-updates` | plain 20,008,778–20,374,610 / 40,000,000 (5 runs)<br>volatile 20,443,138–21,845,850 / 40,000,000 (5 runs)<br>synchronized 40,000,000 (5/5) | "the value 1 is added to the value of the variable and the sum is stored back into the variable" — [§15.14.2](https://docs.oracle.com/javase/specs/jls/se26/html/jls-15.html#jls-15.14.2), JLS SE26.<br>"An unlock on a monitor happens-before every subsequent lock on that monitor." — [§17.4.5](https://docs.oracle.com/javase/specs/jls/se26/html/jls-17.html#jls-17.4.5) |
+| Does `counter++` from two threads end up at 2N? | `mise run memory-model:lost-updates` | plain 20,006,519–20,497,412 / 40,000,000 (5 runs)<br>volatile 20,411,549–25,000,114 / 40,000,000 (5 runs)<br>atomic 40,000,000 (5/5)<br>synchronized 40,000,000 (5/5) | "the value 1 is added to the value of the variable and the sum is stored back into the variable" — [§15.14.2](https://docs.oracle.com/javase/specs/jls/se26/html/jls-15.html#jls-15.14.2), JLS SE26.<br>"An unlock on a monitor happens-before every subsequent lock on that monitor." — [§17.4.5](https://docs.oracle.com/javase/specs/jls/se26/html/jls-17.html#jls-17.4.5)<br>"A small toolkit of classes that support lock-free thread-safe programming on single variables." (package [`java.util.concurrent.atomic`](https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/util/concurrent/atomic/package-summary.html) Javadoc, JDK 27) |
 | Does a plain-`boolean` spin loop ever notice a flag another thread set? | `mise run memory-model:stale-read` | plain 3000 ms — capped, never noticed (5/5)<br>volatile 0.0367–0.0395 ms (5 runs) | "The compiler is free to read the field `this.done` just once, and reuse the cached value in each execution of the loop." — [§17.3](https://docs.oracle.com/javase/specs/jls/se26/html/jls-17.html#jls-17.3).<br>"A write to a volatile variable v synchronizes-with all subsequent reads of v by any thread" — [§17.4.4](https://docs.oracle.com/javase/specs/jls/se26/html/jls-17.html#jls-17.4.4) |
 | Publishing through a data race, no lock — how often does the reader see a field still at its default 0? | `mise run memory-model:unsafe-publication` | plain 40–206 zero-reads / ~17.5M–20.9M reads (5 runs)<br>final 0 zero-reads / ~18.5M–23.9M reads (5/5) | "A thread that can only see a reference to an object after that object has been completely initialized is guaranteed to see the correctly initialized values for that object's `final` fields." — [§17.5](https://docs.oracle.com/javase/specs/jls/se26/html/jls-17.html#jls-17.5) |
 
@@ -23,7 +23,9 @@ Without mise: `cd bricks/memory-model && mvn -q compile`, then run any of
   because "volatile means thread-safe" is what sticks from a five-minute explanation. It is
   not: `++` is still a read, an add and a store, and volatile only guarantees each of those
   three sees the latest value, not that the three happen as one. `SynchronizedHitCounter`
-  guards the same line with a lock — the actual fix.
+  guards the same line with a lock — the actual fix. `AtomicHitCounter` swaps the field for an
+  `AtomicInteger` and the increment for `incrementAndGet()`: the same fix, no lock, because the
+  read, the add and the store happen as one compare-and-set step.
 - **`example/Poller.java`** — a plain `stopped` flag checked at the top of a loop.
   `VolatilePoller` is the same class with that one field made volatile; nothing else changes.
 - **`example/Settings.java`** — a plain `timeoutMs` field set once in the constructor.
@@ -34,27 +36,28 @@ Without mise: `cd bricks/memory-model && mvn -q compile`, then run any of
 ```
 Apple M2 Pro (12 cores: 8 performance + 4 efficiency), macOS 26.5.1
 OpenJDK 64-Bit Server VM (build 27+35-2325, mixed mode, sharing)
-2026-09-21
+2026-09-28
 
 $ mise run memory-model
 ================= LostUpdates =================
-plain int     20009822 hits
-volatile int  20443138 hits
+plain int     20007782 hits
+volatile int  21300569 hits
+atomic int    40000000 hits
 synchronized  40000000 hits
 
 ================= StaleRead =================
 plain boolean     3000 ms (cap — still running)
-volatile boolean  0.036667 ms
+volatile boolean  0.032750 ms
 
 ================= UnsafePublication =================
-plain field   41 zero-reads / 20861125 reads
-final field   0 zero-reads / 21088000 reads
+plain field   72 zero-reads / 20939742 reads
+final field   0 zero-reads / 29840640 reads
 ```
 
-Each proof ran 5 times; the table above gives the range, not the best run. One number held
-flat across every run and is reported as such: `synchronized` at exactly 40,000,000. `final`
-field zero-reads were also 0 in all 5 runs — reported as 0, not "never happens", because 5 runs
-is not a proof of never.
+Each proof ran 5 times; the table above gives the range, not the best run. Two numbers held
+flat across every run and are reported as such: `synchronized` and `atomic int`, both at exactly
+40,000,000. `final` field zero-reads were also 0 in all 5 runs — reported as 0, not "never
+happens", because 5 runs is not a proof of never.
 
 ## When this demo would lie to you
 
@@ -65,7 +68,7 @@ is not a proof of never.
   once (measured on JDK 26.0.1, 20.09.2026); one thread's entire share of increments gets overwritten by the other's final store.
   That is JLS §17.4's "myriad of code transformations", not §15.14.2's "read, add, store"
   non-atomicity — the §15.14.2 quote in the table explains the **volatile** row (real
-  interleaving loss), not the plain one. The three variants also run one after another in a
+  interleaving loss), not the plain one. The four variants also run one after another in a
   single JVM, so by the third call the call site is megamorphic; isolated per variant the
   volatile row's range narrowed by a few million (JDK 26.0.1, 20.09.2026).
 - **`StaleRead`, plain row**: `3000 ms (cap — still running)` is not a measured duration, it's
