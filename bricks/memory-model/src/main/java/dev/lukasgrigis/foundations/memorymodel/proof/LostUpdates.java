@@ -1,5 +1,6 @@
 package dev.lukasgrigis.foundations.memorymodel.proof;
 
+import dev.lukasgrigis.foundations.memorymodel.example.AtomicHitCounter;
 import dev.lukasgrigis.foundations.memorymodel.example.HitCounter;
 import dev.lukasgrigis.foundations.memorymodel.example.SynchronizedHitCounter;
 import dev.lukasgrigis.foundations.memorymodel.example.VolatileHitCounter;
@@ -21,6 +22,7 @@ public final class LostUpdates {
     static void main() throws InterruptedException {
         runWithPlainInt();
         runWithVolatileInt();
+        runWithAtomicInt();
         runWithSynchronized();
     }
 
@@ -34,6 +36,12 @@ public final class LostUpdates {
         final var counter = new VolatileHitCounter();
         race(counter::hit);
         System.out.println("volatile int  " + counter.hits() + " hits");
+    }
+
+    private static void runWithAtomicInt() throws InterruptedException {
+        final var counter = new AtomicHitCounter();
+        race(counter::hit);
+        System.out.println("atomic int    " + counter.hits() + " hits");
     }
 
     private static void runWithSynchronized() throws InterruptedException {
