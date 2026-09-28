@@ -8,9 +8,9 @@ The Java Memory Model answers one question — who sees what, and when. `synchro
 
 | Question | Run it | Number on this machine | What the spec says |
 |---|---|---|---|
-| Does `counter++` from two threads end up at 2N? | `mise run memory-model:lost-updates` | plain 20,006,519–20,497,412 / 40,000,000 (5 runs)<br>volatile 20,411,549–25,000,114 / 40,000,000 (5 runs)<br>atomic 40,000,000 (5/5)<br>synchronized 40,000,000 (5/5) | "the value 1 is added to the value of the variable and the sum is stored back into the variable" — [§15.14.2](https://docs.oracle.com/javase/specs/jls/se26/html/jls-15.html#jls-15.14.2), JLS SE26.<br>"An unlock on a monitor happens-before every subsequent lock on that monitor." — [§17.4.5](https://docs.oracle.com/javase/specs/jls/se26/html/jls-17.html#jls-17.4.5)<br>"A small toolkit of classes that support lock-free thread-safe programming on single variables." (package [`java.util.concurrent.atomic`](https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/util/concurrent/atomic/package-summary.html) Javadoc, JDK 27) |
-| Does a plain-`boolean` spin loop ever notice a flag another thread set? | `mise run memory-model:stale-read` | plain 3000 ms — capped, never noticed (5/5)<br>volatile 0.0367–0.0395 ms (5 runs) | "The compiler is free to read the field `this.done` just once, and reuse the cached value in each execution of the loop." — [§17.3](https://docs.oracle.com/javase/specs/jls/se26/html/jls-17.html#jls-17.3).<br>"A write to a volatile variable v synchronizes-with all subsequent reads of v by any thread" — [§17.4.4](https://docs.oracle.com/javase/specs/jls/se26/html/jls-17.html#jls-17.4.4) |
-| Publishing through a data race, no lock — how often does the reader see a field still at its default 0? | `mise run memory-model:unsafe-publication` | plain 40–206 zero-reads / ~17.5M–20.9M reads (5 runs)<br>final 0 zero-reads / ~18.5M–23.9M reads (5/5) | "A thread that can only see a reference to an object after that object has been completely initialized is guaranteed to see the correctly initialized values for that object's `final` fields." — [§17.5](https://docs.oracle.com/javase/specs/jls/se26/html/jls-17.html#jls-17.5) |
+| Does `counter++` from two threads end up at 2N? | `mise run memory-model:lost-updates` | plain 20,009,748–20,065,498 / 40,000,000 (5 runs)<br>volatile 21,272,190–25,837,075 / 40,000,000 (5 runs)<br>atomic 40,000,000 (5/5)<br>synchronized 40,000,000 (5/5) | "the value 1 is added to the value of the variable and the sum is stored back into the variable" — [§15.14.2](https://docs.oracle.com/javase/specs/jls/se26/html/jls-15.html#jls-15.14.2), JLS SE26.<br>"An unlock on a monitor happens-before every subsequent lock on that monitor." — [§17.4.5](https://docs.oracle.com/javase/specs/jls/se26/html/jls-17.html#jls-17.4.5)<br>"A small toolkit of classes that support lock-free thread-safe programming on single variables." (package [`java.util.concurrent.atomic`](https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/util/concurrent/atomic/package-summary.html) Javadoc, JDK 27) |
+| Does a plain-`boolean` spin loop ever notice a flag another thread set? | `mise run memory-model:stale-read` | plain 3000 ms — capped, never noticed (5/5)<br>volatile 0.0404–0.3743 ms (5 runs) | "The compiler is free to read the field `this.done` just once, and reuse the cached value in each execution of the loop." — [§17.3](https://docs.oracle.com/javase/specs/jls/se26/html/jls-17.html#jls-17.3).<br>"A write to a volatile variable v synchronizes-with all subsequent reads of v by any thread" — [§17.4.4](https://docs.oracle.com/javase/specs/jls/se26/html/jls-17.html#jls-17.4.4) |
+| Publishing through a data race, no lock — how often does the reader see a field still at its default 0? | `mise run memory-model:unsafe-publication` | plain 25–55 zero-reads / ~18.1M–22.2M reads (5 runs)<br>final 0 zero-reads / ~18.9M–29.0M reads (5/5) | "A thread that can only see a reference to an object after that object has been completely initialized is guaranteed to see the correctly initialized values for that object's `final` fields." — [§17.5](https://docs.oracle.com/javase/specs/jls/se26/html/jls-17.html#jls-17.5) |
 
 Without mise: `cd bricks/memory-model && mvn -q compile`, then run any of
 `dev.lukasgrigis.foundations.memorymodel.proof.{LostUpdates,StaleRead,UnsafePublication}` with
@@ -40,21 +40,22 @@ OpenJDK 64-Bit Server VM (build 27+35-2325, mixed mode, sharing)
 
 $ mise run memory-model
 ================= LostUpdates =================
-plain int     20007782 hits
-volatile int  21300569 hits
+plain int     20065498 hits
+volatile int  21272190 hits
 atomic int    40000000 hits
 synchronized  40000000 hits
 
 ================= StaleRead =================
 plain boolean     3000 ms (cap — still running)
-volatile boolean  0.032750 ms
+volatile boolean  0.043959 ms
 
 ================= UnsafePublication =================
-plain field   72 zero-reads / 20939742 reads
-final field   0 zero-reads / 29840640 reads
+plain field   38 zero-reads / 20360876 reads
+final field   0 zero-reads / 28982720 reads
 ```
 
-Each proof ran 5 times; the table above gives the range, not the best run. Two numbers held
+The recorded run is the first of 5 full runs; the table above gives the range across all 5, not the
+best run. Two numbers held
 flat across every run and are reported as such: `synchronized` and `atomic int`, both at exactly
 40,000,000. `final` field zero-reads were also 0 in all 5 runs — reported as 0, not "never
 happens", because 5 runs is not a proof of never.
