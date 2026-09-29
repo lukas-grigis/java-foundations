@@ -25,7 +25,7 @@ Without mise: `cd bricks/memory-model && mvn -q compile`, then run any of
   three sees the latest value, not that the three happen as one. `SynchronizedHitCounter`
   guards the same line with a lock — the actual fix. `AtomicHitCounter` swaps the field for an
   `AtomicInteger` and the increment for `incrementAndGet()`: the same fix, no lock, because the
-  read, the add and the store happen as one compare-and-set step.
+  read, the add and the store happen as one atomic step.
 - **`example/Poller.java`** — a plain `stopped` flag checked at the top of a loop.
   `VolatilePoller` is the same class with that one field made volatile; nothing else changes.
 - **`example/Settings.java`** — a plain `timeoutMs` field set once in the constructor.
