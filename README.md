@@ -27,7 +27,7 @@ Folders are slugs, nothing is numbered.
 | [jdk27-defaults](bricks/jdk27-defaults/) | JDK 27 shrinks object headers and switches small containers to G1 — same code, two JVMs, two measured defaults | JVM / GC | — |
 | [structured-concurrency](bricks/structured-concurrency/) *(preview, JDK 27)* | `StructuredTaskScope` turns sibling cancellation, thread cleanup and deadlines into a guarantee instead of a discipline every caller maintains by hand | Concurrency | — |
 | [virtual-threads-pinning](bricks/virtual-threads-pinning/) | JEP 491 changed the cost of `synchronized`, not its meaning — one binary, two JVMs, 2 threads inside a critical section vs. 64 | Concurrency | — |
-| [memory-model](bricks/memory-model/) | `synchronized`, `volatile` and `final` are three different promises, not three flavors of thread safety: one against lost updates, one against stale reads, one against half-built objects | Concurrency | — |
+| [memory-model](bricks/memory-model/) | `synchronized`, `volatile` and `final` are three different promises, not three flavors of thread safety: one against lost updates, one against stale reads, one against half-built objects | Concurrency | [Read](https://lukasgrigis.dev/blog/java-memory-model/) |
 | [scoped-values](bricks/scoped-values/) | `ThreadLocal` did two jobs: virtual threads break the cache, scoped values (JEP 506) replace the context — 8 formatters become 10,000, a leaked tenant becomes none | Concurrency | — |
 
 Each brick's README carries the thesis, a file-by-file tour, and the experiment to run yourself.
